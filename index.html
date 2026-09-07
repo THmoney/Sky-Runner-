@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sky Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* ===== AD SLOT: TOP BANNER =====
+     Replace this div's content with your AdSense <ins> tag once approved.
+     Standard leaderboard size: 728x90 (desktop) / responsive for mobile.
+  */
+  #ad-top {
+    width: 100%;
+    max-width: 480px;
+    height: 50px;
+    background: #0d0d1a;
+    border: 1px dashed #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  #game-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  #ui {
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    padding: 6px 4px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  #ui span { color: #ffd166; }
+
+  canvas {
+    display: block;
+    width: 100%;
+    background: linear-gradient(180deg, #4361ee 0%, #4cc9f0 60%, #80ed99 60%, #57cc99 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  #overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    border-radius: 8px;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #overlay h1 { font-size: 22px; margin-bottom: 6px; color: #ffd166; }
+  #overlay p { font-size: 13px; margin-bottom: 14px; color: #ddd; }
+
+  #startBtn {
+    background: #ff6b6b;
+    color: #fff;
+    border: none;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(255,107,107,0.5);
+  }
+  #startBtn:active { transform: scale(0.96); }
+
+  .hidden { display: none !important; }
+
+  /* ===== AD SLOT: BOTTOM BANNER ===== */
+  #ad-bottom {
+    width: 100%;
+    max-width: 480px;
+    height: 50px;
+    background: #0d0d1a;
+    border: 1px dashed #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div id="ad-top">Ad slot — 320x50 (AdSense goes here)</div>
+
+<div id="game-wrap">
+  <div id="ui">
+    <div>SCORE: <span id="score">0</span></div>
+    <div>BEST: <span id="best">0</span></div>
+  </div>
+  <canvas id="game" width="480" height="260"></canvas>
+  <div id="overlay">
+    <h1 id="overlayTitle">Sky Runner</h1>
+    <p id="overlaySub">Tap / Space / ↑ to jump over the blocks</p>
+    <button id="startBtn">Play</button>
+  </div>
+</div>
+
+<div id="ad-bottom">Ad slot — 320x50 (AdSense goes here)</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const overlay = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlaySub = document.getElementById('overlaySub');
+  const startBtn = document.getElementById('startBtn');
+
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = H - 40;
+
+  let best = parseInt(localStorage.getItem('skyRunnerBest') || '0', 10);
+  bestEl.textContent = best;
+
+  let state = 'idle'; // idle | running | over
+  let speed, gravity, obstacles, particles, frame, score, player;
+
+  const COLORS = ['#ff6b6b', '#ffd166', '#06d6a0', '#118ab2', '#c77dff'];
+
+  function reset() {
+    speed = 4.2;
+    gravity = 0.6;
+    obstacles = [];
+    particles = [];
+    frame = 0;
+    score = 0;
+    player = {
+      x: 50, y: GROUND_Y - 30, w: 26, h: 30,
+      vy: 0, jumping: false, color: '#ff9f1c'
+    };
+  }
+
+  function spawnObstacle() {
+    const h = 20 + Math.random() * 30;
+    const isFlyer = Math.random() < 0.25;
+    obstacles.push({
+      x: W + 10,
+      y: isFlyer ? GROUND_Y - 70 - Math.random()*20 : GROUND_Y - h,
+      w: 18 + Math.random()*14,
+      h: h,
+      color: COLORS[Math.floor(Math.random()*COLORS.length)]
+    });
+  }
+
+  function jump() {
+    if (state === 'idle') { startGame(); return; }
+    if (state === 'over') { startGame(); return; }
+    if (!player.jumping) {
+      player.vy = -10.5;
+      player.jumping = true;
+    }
+  }
+
+  function startGame() {
+    reset();
+    state = 'running';
+    overlay.classList.add('hidden');
+    loop();
+  }
+
+  function endGame() {
+    state = 'over';
+    if (score > best) {
+      best = score;
+      localStorage.setItem('skyRunnerBest', best);
+      bestEl.textContent = best;
+    }
+    overlayTitle.textContent = 'Game Over';
+    overlaySub.textContent = 'Score: ' + score + '  |  Best: ' + best;
+    startBtn.textContent = 'Retry';
+    overlay.classList.remove('hidden');
+  }
+
+  function rectsOverlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function update() {
+    frame++;
+    score = Math.floor(frame / 6);
+    scoreEl.textContent = score;
+
+    speed += 0.0015; // gradual difficulty ramp
+
+    player.vy += gravity;
+    player.y += player.vy;
+    if (player.y >= GROUND_Y - player.h) {
+      player.y = GROUND_Y - player.h;
+      player.vy = 0;
+      player.jumping = false;
+    }
+
+    if (frame % Math.max(45, Math.floor(70 - speed*5)) === 0) spawnObstacle();
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      obstacles[i].x -= speed;
+      if (obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i, 1);
+      else if (rectsOverlap(player, obstacles[i])) endGame();
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // ground
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(W, GROUND_Y);
+    ctx.stroke();
+
+    // player
+    ctx.fillStyle = player.color;
+    ctx.beginPath();
+    ctx.roundRect(player.x, player.y, player.w, player.h, 6);
+    ctx.fill();
+    // eye
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath();
+    ctx.arc(player.x + player.w - 6, player.y + 8, 2.5, 0, Math.PI*2);
+    ctx.fill();
+
+    // obstacles
+    obstacles.forEach(o => {
+      ctx.fillStyle = o.color;
+      ctx.beginPath();
+      ctx.roundRect(o.x, o.y, o.w, o.h, 4);
+      ctx.fill();
+    });
+  }
+
+  function loop() {
+    if (state !== 'running') return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // input
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jump(); }
+  });
+  canvas.addEventListener('pointerdown', jump);
+  startBtn.addEventListener('click', jump);
+
+  // initial draw
+  reset();
+  draw();
+})();
+</script>
+</body>
+</html>
