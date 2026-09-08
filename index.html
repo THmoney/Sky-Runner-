@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Sky Runner</title>
+
+<!-- ===== GOOGLE AD PLACEMENT API (H5 Games Ads) =====
+     This is what powers rewarded video ads for browser games (AdMob is app-only,
+     regular AdSense banners don't do rewarded video — this is the correct product).
+     1. Sign up for H5 Games Ads inside your AdSense account.
+     2. Replace 
+ca-pub-8316025525057084 below with your real publisher ID.
+     3. Double check this script tag against Google's current docs before going live —
+        ad platform loader URLs occasionally change.
+-->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8316025525057084"></script>
+<script>
+  window.adsbygoogle = window.adsbygoogle || [];
+  function adBreak(o) { adsbygoogle.push(o); }
+  function adConfig(o) { adsbygoogle.push(o); }
+</script>
+
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -20,7 +37,6 @@
 
   /* ===== AD SLOT: TOP BANNER =====
      Replace this div's content with your AdSense <ins> tag once approved.
-     Standard leaderboard size: 728x90 (desktop) / responsive for mobile.
   */
   #ad-top {
     width: 100%;
@@ -45,6 +61,7 @@
   #ui {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     color: #fff;
     padding: 6px 4px;
     font-size: 14px;
@@ -53,6 +70,19 @@
 
   #ui span { color: #ffd166; }
 
+  #lives {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .life-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #444;
+  }
+  .life-dot.filled { background: #06d6a0; }
+
   canvas {
     display: block;
     width: 100%;
@@ -60,6 +90,22 @@
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   }
+
+  #extraLifeBtn {
+    position: absolute;
+    top: 40px;
+    right: 8px;
+    background: #06d6a0;
+    color: #06331f;
+    border: none;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(6,214,160,0.5);
+  }
+  #extraLifeBtn:active { transform: scale(0.96); }
 
   #overlay {
     position: absolute;
@@ -78,8 +124,9 @@
   #overlay h1 { font-size: 22px; margin-bottom: 6px; color: #ffd166; }
   #overlay p { font-size: 13px; margin-bottom: 14px; color: #ddd; }
 
-  #startBtn {
-    background: #ff6b6b;
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  #startBtn, #reviveBtn {
     color: #fff;
     border: none;
     padding: 12px 28px;
@@ -87,9 +134,12 @@
     font-weight: bold;
     border-radius: 30px;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(255,107,107,0.5);
   }
-  #startBtn:active { transform: scale(0.96); }
+  #startBtn { background: #ff6b6b; box-shadow: 0 4px 12px rgba(255,107,107,0.5); }
+  #reviveBtn { background: #4cc9f0; box-shadow: 0 4px 12px rgba(76,201,240,0.5); }
+  #startBtn:active, #reviveBtn:active { transform: scale(0.96); }
+
+  #adNote { font-size: 11px; color: #999; margin-top: 10px; }
 
   .hidden { display: none !important; }
 
@@ -107,6 +157,27 @@
     font-size: 11px;
     margin-top: 8px;
   }
+
+  #about {
+    width: 100%;
+    max-width: 480px;
+    color: #ccc;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 20px 10px 10px;
+  }
+  #about h2 { color: #ffd166; font-size: 16px; margin-bottom: 8px; }
+  #about p { margin-bottom: 10px; }
+  #about a { color: #4cc9f0; }
+  footer {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    color: #666;
+    font-size: 11px;
+    padding: 14px 10px 30px;
+  }
+  footer a { color: #888; }
 </style>
 </head>
 <body>
@@ -116,17 +187,33 @@
 <div id="game-wrap">
   <div id="ui">
     <div>SCORE: <span id="score">0</span></div>
+    <div id="lives"></div>
     <div>BEST: <span id="best">0</span></div>
   </div>
   <canvas id="game" width="480" height="260"></canvas>
+  <button id="extraLifeBtn" class="hidden">🎬 +Life (<span id="adsLeftBtn">5</span>)</button>
   <div id="overlay">
     <h1 id="overlayTitle">Sky Runner</h1>
     <p id="overlaySub">Tap / Space / ↑ to jump over the blocks</p>
-    <button id="startBtn">Play</button>
+    <div class="btn-row">
+      <button id="startBtn">Play</button>
+      <button id="reviveBtn" class="hidden">🎬 Watch Ad to Revive</button>
+    </div>
+    <p id="adNote" class="hidden"></p>
   </div>
 </div>
 
 <div id="ad-bottom">Ad slot — 320x50 (AdSense goes here)</div>
+
+<div id="about">
+  <h2>About Sky Runner</h2>
+  <p>Sky Runner is a free browser-based endless runner, inspired by the classic offline dinosaur game. Jump and dodge your way past colorful obstacles, chase a high score, and use rewarded video ads for extra lives when you're close to a new personal best.</p>
+  <p>No download or install needed — it runs straight in your browser. Built and maintained independently as a small side project.</p>
+</div>
+
+<footer>
+  <a href="privacy.html">Privacy Policy</a>
+</footer>
 
 <script>
 (function(){
@@ -134,33 +221,86 @@
   const ctx = canvas.getContext('2d');
   const scoreEl = document.getElementById('score');
   const bestEl = document.getElementById('best');
+  const livesEl = document.getElementById('lives');
   const overlay = document.getElementById('overlay');
   const overlayTitle = document.getElementById('overlayTitle');
   const overlaySub = document.getElementById('overlaySub');
   const startBtn = document.getElementById('startBtn');
+  const reviveBtn = document.getElementById('reviveBtn');
+  const extraLifeBtn = document.getElementById('extraLifeBtn');
+  const adsLeftBtn = document.getElementById('adsLeftBtn');
+  const adNote = document.getElementById('adNote');
 
   const W = canvas.width, H = canvas.height;
   const GROUND_Y = H - 40;
+  const MAX_ADS = 5;
+  const MAX_BANKED_LIVES = 5;
 
   let best = parseInt(localStorage.getItem('skyRunnerBest') || '0', 10);
   bestEl.textContent = best;
 
   let state = 'idle'; // idle | running | over
-  let speed, gravity, obstacles, particles, frame, score, player;
+  let speed, gravity, obstacles, frame, score, player;
+  let adsWatched = 0;
+  let bankedLives = 0;
 
   const COLORS = ['#ff6b6b', '#ffd166', '#06d6a0', '#118ab2', '#c77dff'];
+
+  function renderLives() {
+    livesEl.innerHTML = '';
+    for (let i = 0; i < MAX_BANKED_LIVES; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'life-dot' + (i < bankedLives ? ' filled' : '');
+      livesEl.appendChild(dot);
+    }
+  }
+
+  function updateExtraLifeBtn() {
+    const adsLeft = MAX_ADS - adsWatched;
+    if (state === 'running' && adsLeft > 0 && bankedLives < MAX_BANKED_LIVES) {
+      extraLifeBtn.classList.remove('hidden');
+      adsLeftBtn.textContent = adsLeft;
+    } else {
+      extraLifeBtn.classList.add('hidden');
+    }
+  }
+
+  // ===== Rewarded ad wrapper =====
+  // Calls the real Ad Placement API if it's loaded/approved; otherwise
+  // simulates the ad instantly so you can test the game logic locally.
+  function showRewardedAd(onReward) {
+    if (typeof adBreak === 'function' && window.adsbygoogle) {
+      try {
+        adBreak({
+          type: 'reward',
+          name: 'sky-runner-reward',
+          beforeReward: (showAdFn) => showAdFn(),
+          adViewed: () => onReward(),
+          adDismissed: () => { /* no reward if they skip/close early */ },
+        });
+        return;
+      } catch (e) {
+        console.warn('Ad Placement API not ready, simulating ad for testing.', e);
+      }
+    }
+    // ---- TEST STUB (remove once real ads are wired up and approved) ----
+    console.log('[TEST MODE] Simulating rewarded ad...');
+    setTimeout(onReward, 600);
+  }
 
   function reset() {
     speed = 4.2;
     gravity = 0.6;
     obstacles = [];
-    particles = [];
     frame = 0;
     score = 0;
+    adsWatched = 0;
+    bankedLives = 0;
     player = {
       x: 50, y: GROUND_Y - 30, w: 26, h: 30,
       vy: 0, jumping: false, color: '#ff9f1c'
     };
+    renderLives();
   }
 
   function spawnObstacle() {
@@ -177,7 +317,7 @@
 
   function jump() {
     if (state === 'idle') { startGame(); return; }
-    if (state === 'over') { startGame(); return; }
+    if (state === 'over') { return; } // over-state actions go through buttons now
     if (!player.jumping) {
       player.vy = -10.5;
       player.jumping = true;
@@ -188,11 +328,40 @@
     reset();
     state = 'running';
     overlay.classList.add('hidden');
+    updateExtraLifeBtn();
     loop();
+  }
+
+  function clearNearbyObstacles() {
+    // give the player breathing room after a revive
+    obstacles = obstacles.filter(o => o.x < player.x - 20 || o.x > player.x + 160);
+  }
+
+  function reviveInPlace() {
+    player.y = GROUND_Y - player.h;
+    player.vy = 0;
+    player.jumping = false;
+    clearNearbyObstacles();
+    state = 'running';
+    overlay.classList.add('hidden');
+    updateExtraLifeBtn();
+    loop();
+  }
+
+  function die() {
+    // consume a banked life automatically if available — no ad needed mid-run
+    if (bankedLives > 0) {
+      bankedLives--;
+      renderLives();
+      reviveInPlace();
+      return;
+    }
+    endGame();
   }
 
   function endGame() {
     state = 'over';
+    extraLifeBtn.classList.add('hidden');
     if (score > best) {
       best = score;
       localStorage.setItem('skyRunnerBest', best);
@@ -200,7 +369,19 @@
     }
     overlayTitle.textContent = 'Game Over';
     overlaySub.textContent = 'Score: ' + score + '  |  Best: ' + best;
-    startBtn.textContent = 'Retry';
+    startBtn.textContent = 'New Game';
+
+    const adsLeft = MAX_ADS - adsWatched;
+    if (adsLeft > 0) {
+      reviveBtn.classList.remove('hidden');
+      reviveBtn.textContent = '🎬 Watch Ad to Revive (' + adsLeft + ' left)';
+      adNote.classList.remove('hidden');
+      adNote.textContent = adsLeft + ' rewarded ad' + (adsLeft === 1 ? '' : 's') + ' remaining this run';
+    } else {
+      reviveBtn.classList.add('hidden');
+      adNote.classList.remove('hidden');
+      adNote.textContent = 'No ads left this run — start a new game for more chances';
+    }
     overlay.classList.remove('hidden');
   }
 
@@ -228,7 +409,7 @@
     for (let i = obstacles.length - 1; i >= 0; i--) {
       obstacles[i].x -= speed;
       if (obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i, 1);
-      else if (rectsOverlap(player, obstacles[i])) endGame();
+      else if (rectsOverlap(player, obstacles[i])) { die(); return; }
     }
   }
 
@@ -267,16 +448,43 @@
   function loop() {
     if (state !== 'running') return;
     update();
+    if (state !== 'running') return; // die() may have changed state mid-update
     draw();
     requestAnimationFrame(loop);
   }
+
+  // ===== Button handlers =====
+  reviveBtn.addEventListener('click', () => {
+    if (adsWatched >= MAX_ADS) return;
+    reviveBtn.disabled = true;
+    reviveBtn.textContent = 'Loading ad...';
+    showRewardedAd(() => {
+      adsWatched++;
+      reviveBtn.disabled = false;
+      overlay.classList.add('hidden');
+      reviveInPlace();
+    });
+  });
+
+  extraLifeBtn.addEventListener('click', () => {
+    if (adsWatched >= MAX_ADS || bankedLives >= MAX_BANKED_LIVES) return;
+    extraLifeBtn.disabled = true;
+    extraLifeBtn.textContent = 'Loading ad...';
+    showRewardedAd(() => {
+      adsWatched++;
+      bankedLives = Math.min(MAX_BANKED_LIVES, bankedLives + 1);
+      renderLives();
+      extraLifeBtn.disabled = false;
+      updateExtraLifeBtn();
+    });
+  });
 
   // input
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jump(); }
   });
   canvas.addEventListener('pointerdown', jump);
-  startBtn.addEventListener('click', jump);
+  startBtn.addEventListener('click', startGame);
 
   // initial draw
   reset();
